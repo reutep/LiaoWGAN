@@ -68,11 +68,11 @@ def run(algo_id, base_config, base_dir, dataset, spec, data_params={}, nYearsInO
     x_fake_rescaled = x_fake_rescaled_torch.cpu().numpy()
     m, n,_ = x_fake_rescaled.shape
     x_fake_rescaled = x_fake_rescaled.reshape(m, n)
-    np.savetxt(experiment_directory+"/generated_returns_rescaled.csv", x_fake_rescaled, delimiter="\n")
+    np.save(experiment_directory+"/generated_returns_rescaled.npy", x_fake_rescaled)
     x_real_rescaled = x_real_raw.cpu().numpy()
     m,n,_ = x_real_rescaled.shape
     x_real_rescaled = x_real_rescaled.reshape(m, n)
-    np.savetxt(experiment_directory+"/input_returns_unscaled.csv", x_real_rescaled, delimiter="\n")
+    np.save(experiment_directory+"/input_returns_unscaled.npy", x_real_rescaled)
     ### end new code ###
     savefig('summary_long.png', experiment_directory)
     plt.plot(x_fake.cpu().numpy()[0, :2000])

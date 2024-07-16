@@ -7,7 +7,7 @@ import pandas as pd
 import torch
 from sklearn.linear_model import LinearRegression
 
-from hyperparameters import SIGCWGAN_CONFIGS
+from LiaoWGAN.hyperparameters import SIGCWGAN_CONFIGS
 from LiaoWGAN.lib.algos.base import BaseConfig
 from LiaoWGAN.lib.algos.base import is_multivariate
 from LiaoWGAN.lib.algos.sigcwgan import calibrate_sigw1_metric, sample_sig_fake
@@ -135,7 +135,7 @@ def evaluate_generator(model_name, seed, experiment_dir, dataset, use_cuda=True)
         _x_past = x_past.clone().repeat(5, 1, 1) if dataset in ['STOCKS', 'ECG'] else x_past.clone()
         x_fake_future = G.sample(q, _x_past)
         plot_summary(x_fake=x_fake_future, x_real=x_real, max_lag=q)
-    plt.savefig(os.path.join(experiment_dir, 'summary.png'))
+    # plt.savefig(os.path.join(experiment_dir, 'summary.png'))
     plt.close()
     if is_multivariate(x_real):
         compare_cross_corr(x_fake=x_fake_future, x_real=x_real)
@@ -147,10 +147,10 @@ def evaluate_generator(model_name, seed, experiment_dir, dataset, use_cuda=True)
     with torch.no_grad():
         x_fake = G.sample(8000, x_past[0:1])
     plot_summary(x_fake=x_fake, x_real=x_real, max_lag=q)
-    plt.savefig(os.path.join(experiment_dir, 'summary_long.png'))
+    # plt.savefig(os.path.join(experiment_dir, 'summary_long.png'))
     plt.close()
     plt.plot(to_numpy(x_fake[0, :1000]))
-    plt.savefig(os.path.join(experiment_dir, 'long_path.png'))
+    # plt.savefig(os.path.join(experiment_dir, 'long_path.png'))
     plt.close()
     return experiment_summary
 
@@ -170,7 +170,7 @@ def get_top_dirs(path):
     return [directory for directory in os.listdir(path) if os.path.isdir(os.path.join(path, directory))]
 
 
-def evaluate_benchmarks(algos, base_dir, datasets, use_cuda=False):
+def evaluate_benchmarks(algos, base_dir, datasets, use_cuda=False, n_in=100):
     msg = 'Running evalution on GPU.' if use_cuda else 'Running evalution on CPU.'
     print(msg)
     for dataset_dir in os.listdir(base_dir):
@@ -179,7 +179,7 @@ def evaluate_benchmarks(algos, base_dir, datasets, use_cuda=False):
             continue
         for experiment_dir in os.listdir(dataset_path):
             df = pd.DataFrame(columns=[])
-            experiment_path = os.path.join(dataset_path, experiment_dir)
+            experiment_path = os.path.join(dataset_path, experiment_dir, f'n-in={n_in}Y')
             for seed_dir in get_top_dirs(experiment_path):
                 seed_path = os.path.join(experiment_path, seed_dir)
                 for algo_dir in get_top_dirs(seed_path):
@@ -198,7 +198,7 @@ def evaluate_benchmarks(algos, base_dir, datasets, use_cuda=False):
                     # add relevant parameters used during training to the experiment summary
                     experiment_summary = complete_experiment_summary(dataset_dir, experiment_dir, experiment_summary)
                     df = df.append(experiment_summary, ignore_index=True, )
-            df_dst_path = os.path.join(base_dir, dataset_dir, experiment_dir, 'summary.csv')
+            df_dst_path = os.path.join(experiment_path, 'summary.csv')
             df.to_csv(df_dst_path, decimal=',', sep=';', float_format='%.5f', index=False)
 
 
