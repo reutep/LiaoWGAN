@@ -1,8 +1,8 @@
 import torch
 
-from lib.algos.base import BaseAlgo
-from lib.algos.gans import toggle_grad
-from lib.utils import sample_indices
+from LiaoWGAN.lib.algos.base import BaseAlgo
+from LiaoWGAN.lib.algos.gans import toggle_grad
+from LiaoWGAN.lib.utils import sample_indices
 
 
 class GMMN(BaseAlgo):

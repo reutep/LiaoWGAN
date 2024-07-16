@@ -7,13 +7,13 @@ import numpy as np
 import torch
 from sklearn.model_selection import train_test_split
 
-from hyperparameters import SIGCWGAN_CONFIGS
-from lib import ALGOS
-from lib.algos.base import BaseConfig
-from lib.data import download_man_ahl_dataset, download_mit_ecg_dataset
-from lib.data import get_data
-from lib.plot import savefig, create_summary
-from lib.utils import pickle_it
+from LiaoWGAN.hyperparameters import SIGCWGAN_CONFIGS
+from LiaoWGAN.lib import ALGOS
+from LiaoWGAN.lib.algos.base import BaseConfig
+from LiaoWGAN.lib.data import download_man_ahl_dataset, download_mit_ecg_dataset
+from LiaoWGAN.lib.data import get_data
+from LiaoWGAN.lib.plot import savefig, create_summary
+from LiaoWGAN.lib.utils import pickle_it
 
 
 def get_algo_config(dataset, data_params):
@@ -40,18 +40,19 @@ def get_algo(algo_id, base_config, dataset, data_params, x_real):
     return algo
 
 
-def run(algo_id, base_config, base_dir, dataset, spec, data_params={}):
+def run(algo_id, base_config, base_dir, dataset, spec, data_params={}, nYearsInOwn=100, n_out=252*100000):
     """ Create the experiment directory, calibrate algorithm, store relevant parameters. """
     print('Executing: %s, %s, %s' % (algo_id, dataset, spec))
-    experiment_directory = pt.join(base_dir, dataset, spec, 'seed={}'.format(base_config.seed), algo_id)
+    experiment_directory = pt.join(base_dir, dataset, spec, f'n-in={nYearsInOwn}Y','seed={}'.format(base_config.seed), algo_id)
     if not pt.exists(experiment_directory):
         # if the experiment directory does not exist we create the directory
         os.makedirs(experiment_directory)
     # Set seed for exact reproducibility of the experiments
     set_seed(base_config.seed)
     # initialise dataset and algo
-    x_real = get_data(dataset, base_config.p, base_config.q, **data_params)
+    x_real, pipeline, x_real_raw = get_data(dataset, base_config.p, base_config.q, nYearsOwn=nYearsInOwn, **data_params)
     x_real = x_real.to(base_config.device)
+
     ind_train = int(x_real.shape[0] * 0.8)
     x_real_train, x_real_test = x_real[:ind_train], x_real[ind_train:] #train_test_split(x_real, train_size = 0.8)
 
@@ -61,7 +62,18 @@ def run(algo_id, base_config, base_dir, dataset, spec, data_params={}):
     # create summary
     create_summary(dataset, base_config.device, algo.G, base_config.p, base_config.q, x_real_test)
     savefig('summary.png', experiment_directory)
-    x_fake = create_summary(dataset, base_config.device, algo.G, base_config.p, 8000, x_real_test, one=True)
+    x_fake = create_summary(dataset, base_config.device, algo.G, base_config.p, n_out, x_real_test, one=True)
+    ### start new code ###
+    x_fake_rescaled_torch = pipeline.inverse_transform(x_fake)
+    x_fake_rescaled = x_fake_rescaled_torch.cpu().numpy()
+    m, n,_ = x_fake_rescaled.shape
+    x_fake_rescaled = x_fake_rescaled.reshape(m, n)
+    np.savetxt(experiment_directory+"/generated_returns_rescaled.csv", x_fake_rescaled, delimiter="\n")
+    x_real_rescaled = x_real_raw.cpu().numpy()
+    m,n,_ = x_real_rescaled.shape
+    x_real_rescaled = x_real_rescaled.reshape(m, n)
+    np.savetxt(experiment_directory+"/input_returns_unscaled.csv", x_real_rescaled, delimiter="\n")
+    ### end new code ###
     savefig('summary_long.png', experiment_directory)
     plt.plot(x_fake.cpu().numpy()[0, :2000])
     savefig('long_path.png', experiment_directory)
@@ -92,20 +104,43 @@ def get_dataset_configuration(dataset):
         )
     elif dataset == 'ARCH':
         generator = (('lag={}'.format(lag), dict(lag=lag)) for lag in [3])
-    elif dataset == 'SINE':
-        generator = [('a', dict())]
+    elif dataset == 'GBM':
+        generator = (
+            ('mu={}_sigma={}'.format(mu, sigma), dict(params=dict(mu=mu, sigma=sigma))) 
+            for mu, sigma in [(0.05, 0.2)]
+        )
+    elif dataset == 'Kou_Jump_Diffusion':
+        generator = (
+            (
+                'mu={}_sigma={}_lambda={}_p={}_eta1={}_eta2={}'.format(mu, sigma, lambda_, p, eta1, eta2), 
+                dict(params=dict(mu=mu, sigma=sigma, lambda_=lambda_, p=p, eta1=eta1, eta2=eta2))
+            ) 
+            for mu, sigma, lambda_, p, eta1, eta2 in [(0.12, 0.2, 2.0, 0.3, 50., 25.), (0.12, 0.2, 2.0, 0.3, 25., 10.)]
+        )
+    elif dataset == 'Brownian_Motion':
+        # TBD
+        generator = (
+            ('mu={}_sigma={}'.format(mu, sigma), dict(mu=mu, sigma=sigma)) 
+            for mu, sigma in [(0.05, 0.2)]
+        )
+    elif dataset == 'Fractional_BM':
+        # TBD
+        generator = (
+            ('mu={}_sigma={}'.format(mu, sigma), dict(mu=mu, sigma=sigma)) 
+            for mu, sigma in [(0.05, 0.2)]
+        )
     else:
         raise Exception('%s not a valid data type.' % dataset)
     return generator
 
 
-def main(args):
-    if not pt.exists('./data'):
-        os.mkdir('./data')
-    if not pt.exists('./data/oxfordmanrealizedvolatilityindices.csv'):
-        print('Downloading Oxford MAN AHL realised library...')
-        download_man_ahl_dataset()
-    #if not pt.exists('./data/mitdb'):
+def main(args, nYearsInOwn=150, n_out=252*100000):
+    # if not pt.exists('./data'):
+    #     os.mkdir('./data')
+    # if not pt.exists('./data/oxfordmanrealizedvolatilityindices.csv'):
+    #     print('Downloading Oxford MAN AHL realised library...')
+    #     download_man_ahl_dataset()
+    # if not pt.exists('./data/mitdb'):
     #    print('Downloading MIT-ECG database...')
     #    download_mit_ecg_dataset()
 
@@ -114,14 +149,14 @@ def main(args):
         for algo_id in args.algos:
             for seed in range(args.initial_seed, args.initial_seed + args.num_seeds):
                 base_config = BaseConfig(
-                        device='cuda:{}'.format(args.device) if args.use_cuda and torch.cuda.is_available() else 'cpu',
+                    device='cuda:{}'.format(args.device) if args.use_cuda and torch.cuda.is_available() else 'cpu',
                     seed=seed,
                     batch_size=args.batch_size,
                     hidden_dims=args.hidden_dims,
                     p=args.p,
                     q=args.q,
                     total_steps=args.total_steps,
-                    mc_samples=1000,
+                    mc_samples=args.mc_samples,
                 )
                 set_seed(seed)
                 generator = get_dataset_configuration(dataset)
@@ -133,6 +168,8 @@ def main(args):
                         dataset=dataset,
                         base_dir=args.base_dir,
                         spec=spec,
+                        nYearsInOwn=nYearsInOwn,
+                        n_out=n_out
                     )
 
 
@@ -141,13 +178,20 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     # Meta parameters
-    parser.add_argument('-base_dir', default='./numerical_results', type=str)
+    parser.add_argument('-base_dir', default='./numerical_results_Liao', type=str)
     parser.add_argument('-use_cuda', action='store_true')
     parser.add_argument('-device', default=1, type=int)
     parser.add_argument('-num_seeds', default=1, type=int)
-    parser.add_argument('-initial_seed', default=0, type=int)
+    parser.add_argument('-initial_seed', default=42, type=int)
     #parser.add_argument('-datasets', default=['ARCH', 'STOCKS', 'ECG', 'VAR', ], nargs="+")
-    parser.add_argument('-datasets', default=['STOCKS', 'ARCH', 'VAR', ], nargs="+")
+    parser.add_argument(
+        '-datasets', 
+        default=[
+            'GBM',
+            'ARCH',
+            'VAR',
+            ], nargs="+"
+    )
     parser.add_argument('-algos', default=['SigCWGAN', 'GMMN', 'RCGAN', 'TimeGAN', 'RCWGAN', 'CWGAN',], nargs="+")
 
 
@@ -157,6 +201,7 @@ if __name__ == '__main__':
     parser.add_argument('-q', default=3, type=int)
     parser.add_argument('-hidden_dims', default=3 * (50,), type=tuple)
     parser.add_argument('-total_steps', default=1000, type=int)
+    parser.add_argument('-mc_samples', default=1000, type=int)
 
     args = parser.parse_args()
     main(args)

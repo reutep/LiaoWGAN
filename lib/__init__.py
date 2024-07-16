@@ -1,2 +1,2 @@
-from lib import augmentations
-from lib.algos import *
+from LiaoWGAN.lib import augmentations
+from LiaoWGAN.lib.algos import *

@@ -8,14 +8,14 @@ import torch
 from sklearn.linear_model import LinearRegression
 
 from hyperparameters import SIGCWGAN_CONFIGS
-from lib.algos.base import BaseConfig
-from lib.algos.base import is_multivariate
-from lib.algos.sigcwgan import calibrate_sigw1_metric, sample_sig_fake
-from lib.algos.sigcwgan import sigcwgan_loss
-from lib.arfnn import SimpleGenerator
-from lib.plot import plot_summary, compare_cross_corr
-from lib.test_metrics import test_metrics
-from lib.utils import load_pickle, to_numpy
+from LiaoWGAN.lib.algos.base import BaseConfig
+from LiaoWGAN.lib.algos.base import is_multivariate
+from LiaoWGAN.lib.algos.sigcwgan import calibrate_sigw1_metric, sample_sig_fake
+from LiaoWGAN.lib.algos.sigcwgan import sigcwgan_loss
+from LiaoWGAN.lib.arfnn import SimpleGenerator
+from LiaoWGAN.lib.plot import plot_summary, compare_cross_corr
+from LiaoWGAN.lib.test_metrics import test_metrics
+from LiaoWGAN.lib.utils import load_pickle, to_numpy
 
 warnings.filterwarnings("ignore")
 
@@ -206,7 +206,7 @@ if __name__ == '__main__':
     import argparse
 
     parser = argparse.ArgumentParser(description='Turn cuda off / on during evalution.')
-    parser.add_argument('-base_dir', default='./numerical_results', type=str)
+    parser.add_argument('-base_dir', default='./numerical_results_Liao', type=str)
     parser.add_argument('-use_cuda', action='store_true')
     parser.add_argument('-datasets', default=['ARCH', 'STOCKS', 'ECG', 'VAR', ], nargs="+")
     parser.add_argument('-algos', default=['SigCWGAN', 'GMMN', 'RCGAN', 'TimeGAN', 'RCWGAN', ], nargs="+")

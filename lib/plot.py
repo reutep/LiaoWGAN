@@ -4,8 +4,8 @@ import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.ticker import MaxNLocator
 
-from lib.test_metrics import *
-from lib.utils import to_numpy
+from LiaoWGAN.lib.test_metrics import *
+from LiaoWGAN.lib.utils import to_numpy
 
 
 def set_style(ax):
@@ -75,7 +75,7 @@ def plot_summary(x_fake, x_real, max_lag=None, labels=None):
     if max_lag is None:
         max_lag = min(128, x_fake.shape[1])
 
-    from lib.test_metrics import skew_torch, kurtosis_torch
+    from LiaoWGAN.lib.test_metrics import skew_torch, kurtosis_torch
     dim = x_real.shape[2]
     _, axes = plt.subplots(dim, 3, figsize=(25, dim * 5))
 

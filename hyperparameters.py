@@ -1,6 +1,8 @@
-from lib.algos.sigcwgan import SigCWGANConfig
-from lib.augmentations import get_standard_augmentation, SignatureConfig, Scale, Concat, Cumsum, AddLags, LeadLag
+from LiaoWGAN.lib.algos.sigcwgan import SigCWGANConfig
+from LiaoWGAN.lib.augmentations import get_standard_augmentation, SignatureConfig, Scale, Concat, Cumsum, AddLags, LeadLag
 
+# PR: 
+# - depth parameter corresponds to signature depth
 SIGCWGAN_CONFIGS = dict(
     ECG=SigCWGANConfig(
         mc_size=1000,
@@ -44,5 +46,25 @@ SIGCWGAN_CONFIGS = dict(
         mc_size=2000,
         sig_config_past=SignatureConfig(depth=3, augmentations=get_standard_augmentation(0.2)),
         sig_config_future=SignatureConfig(depth=3, augmentations=get_standard_augmentation(0.2)),
+    ),
+    GBM=SigCWGANConfig(
+        mc_size=1000,
+        sig_config_past=SignatureConfig(depth=2, augmentations=tuple([Scale(0.2), Cumsum(), AddLags(m=2), LeadLag()])),
+        sig_config_future=SignatureConfig(depth=2, augmentations=tuple([Scale(0.2), Cumsum(), AddLags(m=2), LeadLag()])),
+    ),
+    Kou_Jump_Diffusion=SigCWGANConfig(
+        mc_size=1000,
+        sig_config_past=SignatureConfig(depth=2, augmentations=tuple([Scale(0.2), Cumsum(), AddLags(m=2), LeadLag()])),
+        sig_config_future=SignatureConfig(depth=2, augmentations=tuple([Scale(0.2), Cumsum(), AddLags(m=2), LeadLag()])),
+    ),
+    Brownian_Motion=SigCWGANConfig(
+        mc_size=1000,
+        sig_config_past=SignatureConfig(depth=2, augmentations=tuple([Scale(0.2), Cumsum(), AddLags(m=2), LeadLag()])),
+        sig_config_future=SignatureConfig(depth=2, augmentations=tuple([Scale(0.2), Cumsum(), AddLags(m=2), LeadLag()])),
+    ),
+    Fractional_BM=SigCWGANConfig(
+        mc_size=1000,
+        sig_config_past=SignatureConfig(depth=2, augmentations=tuple([Scale(0.2), Cumsum(), AddLags(m=2), LeadLag()])),
+        sig_config_future=SignatureConfig(depth=2, augmentations=tuple([Scale(0.2), Cumsum(), AddLags(m=2), LeadLag()])),
     ),
 )

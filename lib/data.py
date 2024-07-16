@@ -6,7 +6,8 @@ import pandas as pd
 import torch
 from tqdm import tqdm
 
-
+# own code
+import src.data.make_dataset as mkd
 class Pipeline:
     def __init__(self, steps):
         """ Pre- and postprocessing pipeline. """
@@ -114,7 +115,7 @@ def get_var_dataset(window_size, batch_size=5000, dim=3, phi=0.8, sigma=0.5):
     return pipeline, data_raw, data_preprocessed
 
 
-def get_arch_dataset(window_size, lag=4, bt=0.055, N=5000, dim=1):
+def get_arch_dataset(window_size, lag=4, bt=0.055, N=5000):
     """
     Creates the dataset: loads data.
 
@@ -139,8 +140,37 @@ def get_arch_dataset(window_size, lag=4, bt=0.055, N=5000, dim=1):
         return arch[:, burn_in:], logrtn[:, burn_in:]
 
     pipeline = Pipeline(steps=[('standard_scale', StandardScalerTS(axis=(0, 1)))])
-    _, logrtn = get_raw_data(T=window_size, N=N, bt=bt)
+    _, logrtn = get_raw_data(T=window_size, N=N, bt=bt, lag=lag)
     data_raw = torch.from_numpy(logrtn[..., None]).float()
+    data_pre = pipeline.transform(data_raw)
+    return pipeline, data_raw, data_pre
+
+
+def get_own_dataset(method, nYears, params, price=False):
+    """
+    Creates the gbm dataset: loads data.
+
+    """
+    def get_raw_data(method, nYears, params):
+        grid_points = 252
+        params["T"] = nYears
+        params["n_points"] = grid_points * params["T"] + 1
+        params["n"] = 1
+        if method in ["GBM", "Kou_Jump_Diffusion"]:
+            params["S0"] = 1.
+        dataLoader = mkd.DataLoader(method=method, params=params)
+        paths, time = dataLoader.create_dataset(output_type="np.ndarray")
+        return paths.T
+    
+    price_paths = get_raw_data(method, nYears, params)
+    if price:
+        data_raw = torch.from_numpy(price_paths[..., None]).float()
+    else:
+        log_prices = np.log(price_paths)
+        logrtn = np.diff(log_prices, axis=1)
+        data_raw = torch.from_numpy(logrtn[..., None]).float()
+
+    pipeline = Pipeline(steps=[('standard_scale', StandardScalerTS(axis=(0, 1)))])
     data_pre = pipeline.transform(data_raw)
     return pipeline, data_raw, data_pre
 
@@ -170,7 +200,7 @@ def get_mit_arrythmia_dataset(filenames):
     return pipeline, data_raw, data_pre
 
 
-def get_data(data_type, p, q, **data_params):
+def get_data(data_type, p, q, nYearsOwn=150, **data_params):
     if data_type == 'VAR':
         pipeline, x_real_raw, x_real = get_var_dataset(
             40000, batch_size=1, **data_params
@@ -183,11 +213,13 @@ def get_data(data_type, p, q, **data_params):
         )
     elif data_type == 'ECG':
         pipeline, x_real_raw, x_real = get_mit_arrythmia_dataset(**data_params)
+    elif data_type in ['GBM', 'Kou_Jump_Diffusion', 'Brownian_Motion', 'Fractional_BM']:
+        pipeline, x_real_raw, x_real = get_own_dataset(method=data_type, nYears=nYearsOwn, price=False, **data_params)
     else:
         raise NotImplementedError('Dataset %s not valid' % data_type)
     assert x_real.shape[0] == 1
     x_real = rolling_window(x_real[0], p + q)
-    return x_real
+    return x_real, pipeline, x_real_raw
 
 
 def download_man_ahl_dataset():
