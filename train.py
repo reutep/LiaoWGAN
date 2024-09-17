@@ -115,19 +115,27 @@ def get_dataset_configuration(dataset):
                 'mu={}_sigma={}_lambda={}_p={}_eta1={}_eta2={}'.format(mu, sigma, lambda_, p, eta1, eta2), 
                 dict(params=dict(mu=mu, sigma=sigma, lambda_=lambda_, p=p, eta1=eta1, eta2=eta2))
             ) 
-            for mu, sigma, lambda_, p, eta1, eta2 in [(0.12, 0.2, 2.0, 0.3, 50., 25.), (0.12, 0.2, 2.0, 0.3, 25., 10.)]
+            for mu, sigma, lambda_, p, eta1, eta2 in [
+                (0.12, 0.2, 2.0, 0.3, 50., 25.), 
+                (0.12, 0.2, 2.0, 0.3, 25., 10.)
+            ]
         )
-    elif dataset == 'Brownian_Motion':
-        # TBD
+    elif dataset == 'YFinance':
         generator = (
-            ('mu={}_sigma={}'.format(mu, sigma), dict(mu=mu, sigma=sigma)) 
-            for mu, sigma in [(0.05, 0.2)]
-        )
-    elif dataset == 'Fractional_BM':
-        # TBD
-        generator = (
-            ('mu={}_sigma={}'.format(mu, sigma), dict(mu=mu, sigma=sigma)) 
-            for mu, sigma in [(0.05, 0.2)]
+            (
+                'ticker={}_start={}_end={}'.format(ticker, start, end), 
+                dict(params=dict(ticker=ticker, start=start, end=end))
+            ) 
+            for ticker, start, end in [
+                ("^GSPC", "1999-07-01", "2024-06-30"), 
+                ("^GSPC", "2004-07-01", "2024-06-30"), 
+                ("^GSPC", "2009-07-01", "2024-06-30"), 
+                ("^GSPC", "2014-07-01", "2024-06-30"), 
+                ("^GSPC", "2019-07-01", "2024-06-30"), 
+                ("^GSPC", "2021-07-01", "2024-06-30"), 
+                ("^GSPC", "2022-07-01", "2024-06-30"), 
+                ("^GSPC", "2023-07-01", "2024-06-30"), 
+            ]
         )
     else:
         raise Exception('%s not a valid data type.' % dataset)

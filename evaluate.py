@@ -178,6 +178,8 @@ def evaluate_benchmarks(algos, base_dir, datasets, use_cuda=False, n_in=100):
         if dataset_dir not in datasets:
             continue
         for experiment_dir in os.listdir(dataset_path):
+            if experiment_dir == ".ipynb_checkpoints":
+                continue
             df = pd.DataFrame(columns=[])
             experiment_path = os.path.join(dataset_path, experiment_dir, f'n-in={n_in}Y')
             for seed_dir in get_top_dirs(experiment_path):
@@ -185,8 +187,8 @@ def evaluate_benchmarks(algos, base_dir, datasets, use_cuda=False, n_in=100):
                 for algo_dir in get_top_dirs(seed_path):
                     if algo_dir not in algos:
                         continue
-                    print(dataset_dir, experiment_dir, algo_dir, )
                     algo_path = os.path.join(seed_path, algo_dir)
+                    print(f"   {algo_path}")
                     # evaluate the generator
                     experiment_summary = evaluate_generator(
                         model_name=algo_dir,
@@ -199,6 +201,7 @@ def evaluate_benchmarks(algos, base_dir, datasets, use_cuda=False, n_in=100):
                     experiment_summary = complete_experiment_summary(dataset_dir, experiment_dir, experiment_summary)
                     df = df.append(experiment_summary, ignore_index=True, )
             df_dst_path = os.path.join(experiment_path, 'summary.csv')
+            print(f'Saving summary to {df_dst_path}...')
             df.to_csv(df_dst_path, decimal=',', sep=';', float_format='%.5f', index=False)
 
 

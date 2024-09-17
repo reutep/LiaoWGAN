@@ -151,23 +151,39 @@ def get_own_dataset(method, nYears, params, price=False):
     Creates the gbm dataset: loads data.
 
     """
-    def get_raw_data(method, nYears, params):
+    def get_raw_data(method, nYears, params, price):
+        # avoid large number overflow for big T 
+        # for log return ts, it does not matter if we simulate e.g. 1x10,000 years or 100x100 years
         grid_points = 252
-        params["T"] = nYears
-        params["n_points"] = grid_points * params["T"] + 1
-        params["n"] = 1
-        if method in ["GBM", "Kou_Jump_Diffusion"]:
+        if method != "YFinance":
+            if price or nYears <= 1000:
+                params["T"] = nYears
+                params["n"] = 1
+            elif nYears % 1000 == 0:
+                params["T"] = 1000   
+                params["n"] = nYears // 1000
+            else:
+                raise ValueError(
+                    f"nYears ({nYears}) must be divisible by 1000 for large values."
+                )
+            params["n_points"] = grid_points * params["T"] + 1
+        else:
+            params["split"] = False
+
+        if method in ["GBM", "Kou_Jump_Diffusion", "YFinance"]:
             params["S0"] = 1.
         dataLoader = mkd.DataLoader(method=method, params=params)
         paths, time = dataLoader.create_dataset(output_type="np.ndarray")
         return paths.T
-    
-    price_paths = get_raw_data(method, nYears, params)
+
+    price_paths = get_raw_data(method, nYears, params, price)
     if price:
         data_raw = torch.from_numpy(price_paths[..., None]).float()
     else:
         log_prices = np.log(price_paths)
         logrtn = np.diff(log_prices, axis=1)
+        if nYears > 1000:
+            logrtn = logrtn.reshape(-1, nYears*252)
         data_raw = torch.from_numpy(logrtn[..., None]).float()
 
     pipeline = Pipeline(steps=[('standard_scale', StandardScalerTS(axis=(0, 1)))])
@@ -213,7 +229,7 @@ def get_data(data_type, p, q, nYearsOwn=150, **data_params):
         )
     elif data_type == 'ECG':
         pipeline, x_real_raw, x_real = get_mit_arrythmia_dataset(**data_params)
-    elif data_type in ['GBM', 'Kou_Jump_Diffusion', 'Brownian_Motion', 'Fractional_BM']:
+    elif data_type in ['GBM', 'Kou_Jump_Diffusion', 'YFinance']:
         pipeline, x_real_raw, x_real = get_own_dataset(method=data_type, nYears=nYearsOwn, price=False, **data_params)
     else:
         raise NotImplementedError('Dataset %s not valid' % data_type)
