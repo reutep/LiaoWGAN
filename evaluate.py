@@ -201,7 +201,7 @@ def evaluate_benchmarks(algos, base_dir, datasets, use_cuda=False, n_in=100):
                     experiment_summary = complete_experiment_summary(dataset_dir, experiment_dir, experiment_summary)
                     df = df.append(experiment_summary, ignore_index=True, )
             df_dst_path = os.path.join(experiment_path, 'summary.csv')
-            print(f'Saving summary to {df_dst_path}...')
+            print(f'Saving summary to {df_dst_path} ...')
             df.to_csv(df_dst_path, decimal=',', sep=';', float_format='%.5f', index=False)
 
 
@@ -212,6 +212,6 @@ if __name__ == '__main__':
     parser.add_argument('-base_dir', default='./numerical_results_Liao', type=str)
     parser.add_argument('-use_cuda', action='store_true')
     parser.add_argument('-datasets', default=['ARCH', 'STOCKS', 'ECG', 'VAR', ], nargs="+")
-    parser.add_argument('-algos', default=['SigCWGAN', 'GMMN', 'RCGAN', 'TimeGAN', 'RCWGAN', ], nargs="+")
+    parser.add_argument('-algos', default=['SigCWGAN', 'GMMN', 'RCGAN', 'TimeGAN', 'CWGAN', ], nargs="+")
     args = parser.parse_args()
     evaluate_benchmarks(base_dir=args.base_dir, use_cuda=args.use_cuda, datasets=args.datasets, algos=args.algos)
