@@ -216,7 +216,7 @@ def get_mit_arrythmia_dataset(filenames):
     return pipeline, data_raw, data_pre
 
 
-def get_data(data_type, p, q, nYearsOwn=150, **data_params):
+def get_data(data_type, p, q, nYearsOwn=100, **data_params):
     if data_type == 'VAR':
         pipeline, x_real_raw, x_real = get_var_dataset(
             40000, batch_size=1, **data_params
